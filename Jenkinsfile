@@ -10,7 +10,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t sampleApp:latest .'
+                sh 'docker build -t sampleapp:latest .'
             }
         }
 
@@ -19,8 +19,8 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker tag sampleApp:latest $DOCKER_USER/sampleApp:latest
-                        docker push $DOCKER_USER/sampleApp:latest
+                        docker tag sampleapp:latest $DOCKER_USER/sampleapp:latest
+                        docker push $DOCKER_USER/sampleapp:latest
                     '''
                 }
             }
