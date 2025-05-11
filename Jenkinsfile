@@ -4,13 +4,13 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/your-username/your-dotnetcore-repo.git', branch: 'main'
+                git url: 'git@github.com:gititc778/sampleApp.git', branch: 'main'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t my-dotnetcore-app:latest .'
+                sh 'docker build -t sampleApp:latest .'
             }
         }
 
@@ -19,8 +19,8 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker tag my-dotnetcore-app:latest $DOCKER_USER/my-dotnetcore-app:latest
-                        docker push $DOCKER_USER/my-dotnetcore-app:latest
+                        docker tag sampleApp:latest $DOCKER_USER/sampleApp:latest
+                        docker push $DOCKER_USER/sampleApp:latest
                     '''
                 }
             }
