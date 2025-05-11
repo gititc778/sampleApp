@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git url: 'git@github.com:gititc778/sampleApp.git', branch: 'main'
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'main'
             }
         }
 
@@ -25,11 +25,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh 'kubectl apply -f k8s/deployment.yaml'
-            }
-        }
+     
     }
 }
