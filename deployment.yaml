@@ -18,6 +18,9 @@ spec:
         image: dockeritc778/sampleapp:latest
         ports:
         - containerPort: 5000
+        env:
+            - name: ASPNETCORE_URLS
+              value: http://0.0.0.0:5000
 
 ---
 
