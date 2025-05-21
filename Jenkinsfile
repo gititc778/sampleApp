@@ -29,7 +29,11 @@ pipeline {
         stage('Deploy to Kubernetes'){
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
-                    sh 'kubectl apply -f deployment.yaml'
+                sh '''
+                    kubectl delete pod -n dev --all --ignore-not-found=true
+                    kubectl delete svc -n dev --all --ignore-not-found=true
+                    kubectl apply -f deployment.yaml -n dev
+                '''
                 }
             }
         }
