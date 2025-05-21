@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t sampleapp:${IMAGE_TAG} .'
+            }
+        }
+
+        stage('Push to Docker Registry') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker tag sampleapp:${IMAGE_TAG} $DOCKER_USER/sampleapp:${IMAGE_TAG}
+                        docker push $DOCKER_USER/sampleapp:${IMAGE_TAG}
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
+                    // Replace image tag in deployment.yaml before applying
+                    sh '''
+                        sed "s|REPLACE_TAG|${IMAGE_TAG}|" deployment.yaml > deployment-patched.yaml
+                        kubectl apply -f deployment-patched.yaml
+                    '''
+                }
+            }
+        }
+    }
+}
