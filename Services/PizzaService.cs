@@ -12,7 +12,8 @@ public static class PizzaService
                 {
                     new Pizza { Id = 1, Name = "Classic Italian", Price=20.00M, Size=PizzaSize.    Large, IsGlutenFree = false },
                     new Pizza { Id = 2, Name = "Veggie", Price=15.00M, Size=PizzaSize.Small,     IsGlutenFree = true },
-                    new Pizza { Id = 2, Name = "pizza1", Price=50.00M, Size=PizzaSize.Small,     IsGlutenFree = true }
+                    new Pizza { Id = 2, Name = "pizza1", Price=50.00M, Size=PizzaSize.Small,     IsGlutenFree = true },
+                    new Pizza { Id = 2, Name = "pizza2", Price=100.00M, Size=PizzaSize.Small,     IsGlutenFree = true }
                     
                 };
     }
