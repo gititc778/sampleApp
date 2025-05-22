@@ -10,7 +10,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t sampleapp:latest .'
+                sh 'docker build -t sampleapp:${BUILD_NUMBER} .'
             }
         }
 
@@ -19,8 +19,8 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:latest ${DOCKER_USER}/sampleapp:latest
-                        docker push ${DOCKER_USER}/sampleapp:latest
+                        docker tag sampleapp:${BUILD_NUMBER} ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
+                        docker push ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
                     '''
                 }
             }
@@ -30,7 +30,8 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                 sh '''
-                    kubectl rollout restart deployment/sampleapp-deployment -n dev
+                    sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml
+                    kubectl apply -f deployment.yaml -n dev
                 '''
                 }
             }
