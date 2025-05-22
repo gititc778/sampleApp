@@ -30,7 +30,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                 sh '''
-                    kubectl set image deployment/sampleapp sampleapp=${DOCKER_USER}/sampleapp:${BUILD_NUMBER} -n dev
+                    kubectl set image deployment/sampleapp-deployment sampleapp=${DOCKER_USER}/sampleapp:${BUILD_NUMBER} -n dev
                 '''
                 }
             }
