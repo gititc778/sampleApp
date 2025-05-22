@@ -30,9 +30,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                 sh '''
-                    kubectl delete pod -n dev --all --ignore-not-found=true
-                    kubectl delete svc -n dev --all --ignore-not-found=true
-                    kubectl apply -f deployment.yaml -n dev
+                    kubectl set image deployment/sampleapp sampleapp=$DOCKER_USER/sampleapp:${BUILD_NUMBER} -n dev
                 '''
                 }
             }
