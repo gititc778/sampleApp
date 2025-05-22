@@ -30,7 +30,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                 sh '''
-                    kubectl rollout restart deployment/sampleapp -n dev
+                    kubectl rollout restart deployment/sampleapp-deployment -n dev
                 '''
                 }
             }
