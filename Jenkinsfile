@@ -31,7 +31,7 @@ pipeline {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                 sh '''
                     sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml
-                    kubectl apply -f deployment.yaml -n dev
+                    kubectl apply -f deployment.yaml
                 '''
                 }
             }
