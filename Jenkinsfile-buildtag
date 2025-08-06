@@ -1,16 +1,5 @@
 def buildTag = ''
 
-def buildDockerImage(tag) {
-    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-        sh """
-            docker build -t sampleapp:${tag} .
-            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-            docker tag sampleapp:${tag} ${DOCKER_USER}/sampleapp:${tag}
-            docker push ${DOCKER_USER}/sampleapp:${tag}
-        """
-    }
-}
-
 pipeline {
     agent { label 'build-agent' }
 
@@ -21,6 +10,9 @@ pipeline {
                     def date = new Date().format('yyyyMMdd')
                     buildTag = "${date}.${env.BUILD_NUMBER}"
                     currentBuild.displayName = buildTag
+
+                   
+                    sh "echo BUILD_TAG=${buildTag} > build.env"
                 }
             }
         }
@@ -39,10 +31,24 @@ pipeline {
             }
         }
 
-        stage('Build & Push Docker Image') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    buildDockerImage(buildTag)
+                    sh "docker build -t sampleapp:${buildTag} ."
+                }
+            }
+        }
+
+        stage('Push to Docker Registry') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        sh """
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                            docker tag sampleapp:${buildTag} ${DOCKER_USER}/sampleapp:${buildTag}
+                            docker push ${DOCKER_USER}/sampleapp:${buildTag}
+                        """
+                    }
                 }
             }
         }
