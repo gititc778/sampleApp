@@ -36,6 +36,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
 
             steps {
+                cleanWs()
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                     sh """
                         sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml
