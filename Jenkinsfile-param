@@ -4,9 +4,14 @@ pipeline {
     
     parameters {
         string(name: 'BRANCH', defaultValue: 'master')
-        string(name: 'ENV', defaultValue: 'staging')
         booleanParam(name: 'DEPLOY', defaultValue: true)
     }
+    
+    environment {
+        ENV = 'staging'  
+    }
+
+
 
     stages {
         stage('Checkout Code') {
