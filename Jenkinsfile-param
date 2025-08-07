@@ -4,7 +4,7 @@ pipeline {
     
     parameters {
         string(name: 'BRANCH', defaultValue: 'master')
-        string(name: 'ENV', defaultValue: 'prod')
+        string(name: 'ENV', defaultValue: 'dev')
         booleanParam(name: 'DEPLOY', defaultValue: true)
     }
 
