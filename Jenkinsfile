@@ -13,9 +13,6 @@ def buildDockerImage(tag) {
 
 pipeline {
     agent any
-    tools {
-      git 'Git'
-    }
 
     parameters {
         string(name: 'KUBE_NAMESPACE', defaultValue: 'default', description: 'Kubernetes Namespace')
