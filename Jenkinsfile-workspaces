@@ -13,7 +13,7 @@ pipeline {
     }
     
     environment {
-        ENV = 'prod'  
+        ENV = 'dev'  
     }
 
 
