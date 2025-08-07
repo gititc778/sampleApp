@@ -8,7 +8,7 @@ pipeline {
     }
     
     environment {
-        ENV = 'staging'  
+        ENV = 'prod'  
     }
 
 
