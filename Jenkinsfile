@@ -14,6 +14,10 @@ def buildDockerImage(tag) {
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'KUBE_NAMESPACE', defaultValue: 'default', description: 'Kubernetes Namespace')
+    }
+
     stages {
         stage('Generate Tag') {
             steps {
