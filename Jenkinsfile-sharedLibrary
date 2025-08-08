@@ -24,7 +24,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    buildDocker(poc-1.1)
+                    buildDocker("poc-1.1")
                 }
             }
         }
@@ -32,7 +32,7 @@ pipeline {
         stage('Push to Docker Registry') {
             steps {
                 script {
-                    pushDocker(poc-1.1)
+                    pushDocker("poc-1.1")
                 }
             }
         }
@@ -40,7 +40,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    deployK8s(poc-1.1)
+                    deployK8s("poc-1.1")
                 }
             }
         }
