@@ -1,0 +1,48 @@
+@Library('mySharedLibrary') _
+
+def buildTag = ''
+
+pipeline {
+    agent { label 'build-agent' }
+
+    stages {
+        stage('Generate Tag') {
+            steps {
+                script {
+                    buildTag = generateTag()
+                }
+            }
+        }
+
+
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    buildDocker(buildTag)
+                }
+            }
+        }
+
+        stage('Push to Docker Registry') {
+            steps {
+                script {
+                    pushDocker(buildTag)
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    deployK8s(buildTag)
+                }
+            }
+        }
+    }
+}
