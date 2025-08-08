@@ -5,6 +5,15 @@ def buildTag = ''
 pipeline {
     agent { label 'build-agent' }
 
+    parameters {
+        string(name: 'BRANCH', defaultValue: 'master')
+        booleanParam(name: 'DEPLOY', defaultValue: true)
+    }
+
+    environment {
+        ENV = 'prod'  
+    }
+
     stages {
         stage('Generate Tag') {
             steps {
@@ -17,7 +26,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: "${params.BRANCH}"
             }
         }
 
@@ -38,6 +47,9 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
+            when {
+                expression { params.DEPLOY }
+            }
             steps {
                 script {
                     deployK8s(buildTag)
