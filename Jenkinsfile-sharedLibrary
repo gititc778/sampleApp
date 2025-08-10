@@ -12,6 +12,7 @@ pipeline {
 
     environment {
         ENV = 'prod'  
+        
     }
 
     stages {
@@ -33,7 +34,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    buildDocker(buildTag)
+                    buildDocker("v1.10")
                 }
             }
         }
@@ -41,7 +42,7 @@ pipeline {
         stage('Push to Docker Registry') {
             steps {
                 script {
-                    pushDocker(buildTag)
+                    pushDocker("v1.10")
                 }
             }
         }
@@ -52,7 +53,7 @@ pipeline {
             }
             steps {
                 script {
-                    deployK8s(buildTag)
+                    deployK8s("v1.10")
                 }
             }
         }
