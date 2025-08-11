@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: sampleapp
-        image: vibincholayil/sampleapp-jenkins-demo:IMAGE_TAG
+        image: vibincholayil/sampleapp-jenkins-demo
         imagePullPolicy: Always
         ports:
           - containerPort: 5000
