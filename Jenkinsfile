@@ -12,11 +12,7 @@ def buildDockerImage(tag) {
 }
 
 pipeline {
-    agent any
-
-    parameters {
-        string(name: 'KUBE_NAMESPACE', defaultValue: 'default', description: 'Kubernetes Namespace')
-    }
+    agent { label 'build-agent' }
 
     stages {
         stage('Generate Tag') {
@@ -39,7 +35,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/vibincholayil/sampleApp-jenkis-demo', branch: 'master'
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
             }
         }
 
@@ -56,14 +52,14 @@ pipeline {
                 script {
                     input message: "Do you want to proceed with Kubernetes deployment?", ok: 'Deploy'
                 }
+
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
-                    sh """
-                        echo "Using kubeconfig: \$KUBECONFIG"
-                        kubectl cluster-info
-                        sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
-                        kubectl apply -f deployment.yaml -n ${params.KUBE_NAMESPACE}
-                        kubectl rollout status deployment/sampleapp-deployment -n ${params.KUBE_NAMESPACE}
-                    """
+                    script {
+                        sh """
+                            sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
+                            kubectl apply -f deployment.yaml
+                        """
+                    }
                 }
             }
         }
