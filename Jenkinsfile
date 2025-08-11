@@ -1,7 +1,6 @@
 def buildTag = ''
 
 def buildDockerImage(tag) {
-    
     withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
         sh """
             docker build -t sampleapp:${tag} .
@@ -59,13 +58,14 @@ pipeline {
                 }
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                     sh """
+                        echo "Using kubeconfig: \$KUBECONFIG"
+                        kubectl cluster-info
                         sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
-                        kubectl apply -f deployment.yaml
+                        kubectl apply -f deployment.yaml -n ${params.KUBE_NAMESPACE}
+                        kubectl rollout status deployment/sampleapp-deployment -n ${params.KUBE_NAMESPACE}
                     """
                 }
             }
         }
     }
 }
-
-
