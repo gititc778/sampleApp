@@ -1,6 +1,7 @@
 def buildTag = ''
 
 def buildDockerImage(tag) {
+    
     withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
         sh """
             docker build -t sampleapp:${tag} .
@@ -55,7 +56,8 @@ pipeline {
                 script {
                     input message: "Do you want to proceed with Kubernetes deployment?", ok: 'Deploy'
                 }
-                withCredentials([file(credentialsId: 'kubeconfig-credential', variable: 'KUBECONFIG')]) {
+                
+                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                     script {
 
 
