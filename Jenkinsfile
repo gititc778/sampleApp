@@ -57,11 +57,18 @@ pipeline {
                     input message: "Do you want to proceed with Kubernetes deployment?", ok: 'Deploy'
                 }
 
+
+
+               
+
+
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                     script {
+
                         sh """
                             sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
-                            kubectl apply -f deployment.yaml
+                            kubectl --kubeconfig=${KUBECONFIG} apply -n ${params.KUBE_NAMESPACE} -f deployment.yaml
+                            
                         """
                     }
                 }
