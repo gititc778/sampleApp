@@ -39,7 +39,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+                git url: 'https://github.com/vibincholayil/sampleApp-jenkis-demo', branch: 'master'
             }
         }
 
