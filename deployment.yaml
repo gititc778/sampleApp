@@ -14,14 +14,14 @@ spec:
         app: sampleapp
     spec:
       containers:
-      - name: sampleapp
-        image: vibincholayil/sampleapp:IMAGE_TAG
-        imagePullPolicy: Always
-        ports:
-          - containerPort: 5000
-        env:
-          - name: ASPNETCORE_URLS
-            value: http://0.0.0.0:5000
+        - name: sampleapp
+          image: vibincholayil/sampleapp:${IMAGE_TAG}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://0.0.0.0:5000
 
 ---
 apiVersion: v1
