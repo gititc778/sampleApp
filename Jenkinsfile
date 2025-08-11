@@ -51,18 +51,11 @@ pipeline {
             }
         }
 
- 
-
-
-
-
-
-
             steps {
                 script {
                     input message: "Do you want to proceed with Kubernetes deployment?", ok: 'Deploy'
                 }
-                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'kubeconfig-credential', variable: 'KUBECONFIG')]) {
                     script {
 
 
