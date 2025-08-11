@@ -61,7 +61,7 @@ pipeline {
 
                         sh """
                             sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
-                            kubectl --kubeconfig=${KUBECONFIG} apply -n ${params.KUBE_NAMESPACE} -f deployment.yaml
+                            kubectl apply -f deployment.yaml
                             
                         """
                     }
