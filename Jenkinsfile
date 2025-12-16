@@ -26,17 +26,6 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes'){
-            steps {
-                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
-                sh '''
-                    sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml
-                    kubectl apply -f deployment.yaml
-                '''
-                }
-            }
-        }
-
         stage('Login to Azure and AKS') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'aks-login', usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
