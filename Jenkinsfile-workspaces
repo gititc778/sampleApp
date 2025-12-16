@@ -1,3 +1,4 @@
+//customWorkspace is used to override the default workspace path for a pipeline or job.
 pipeline {
     agent {
         node {
