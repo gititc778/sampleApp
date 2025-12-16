@@ -1,7 +1,23 @@
+def buildTag = ''
+
 pipeline {
     agent  any
 
     stages {
+
+        stage('Generate Tag') {
+            steps {
+                script {
+                    def date = new Date().format('yyyyMMdd')
+                    buildTag = "${date}.${env.BUILD_NUMBER}"
+                    currentBuild.displayName = buildTag
+
+                   
+                    sh "echo BUILD_TAG=${buildTag} > build.env"
+                }
+            }
+        }
+
         stage('Checkout Code') {
             steps {
                 git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
@@ -19,8 +35,8 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockeritc778', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:${BUILD_NUMBER} ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
-                        docker push ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
+                        docker tag sampleapp:${buildTag} ${DOCKER_USER}/sampleapp:${buildTag}
+                        docker push ${DOCKER_USER}/sampleapp:${buildTag}
                     '''
                 }
             }
@@ -50,7 +66,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml
+                    sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
                     kubectl apply -f deployment.yaml
                 '''
             }
