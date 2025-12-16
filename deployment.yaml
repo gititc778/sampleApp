@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sampleApp
+  name: sampleapp
   namespace: devops  # optional
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sampleApp
+      app: sampleapp
   template:
     metadata:
       labels:
-        app: sampleApp
+        app: sampleapp
     spec:
       containers:
-      - name: sampleApp
-        image: dockeritc778/sampleApp:v10.5
+      - name: sampleapp
+        image: dockeritc778/sampleapp:v10.5
         ports:
         - containerPort: 5000
 
@@ -24,11 +24,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: sampleApp-svc
+  name: sampleapp-svc
 spec:
   type: LoadBalancer
   selector:
-    app: sampleApp
+    app: sampleapp
   ports:
     - port: 80      
       targetPort: 5000
