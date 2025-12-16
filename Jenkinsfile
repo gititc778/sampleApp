@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t sampleapp:v10.5 .'
+            }
+        }
+
+        stage('Push to Docker Registry') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockeritc778', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                        docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.5
+                        docker push ${DOCKER_USER}/sampleapp:v10.5
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes'){
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
+                sh '''
+                    sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml
+                    kubectl apply -f deployment.yaml
+                '''
+                }
+            }
+        }
+
+        stage('Login to Azure and AKS') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'aks-login', usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
+                    sh """
+                        az logout || true
+                        az login --service-principal \
+                                 -u "$AZURE_CLIENT_ID" \
+                                 -p "$AZURE_CLIENT_SECRET" \
+                                 --tenant 2b32b1fa-7899-482e-a6de-be99c0ff5516
+
+                        az aks get-credentials \
+                            --resource-group rg-dev-flux \
+                            --name aks-dev-flux-cluster \
+                            --overwrite-existing
+
+                        kubectl get pods -n default
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to AKS') {
+            steps {
+                sh "kubectl apply -f deployment.yaml -n devops"
+            }
+        }
+
+    }
+}
