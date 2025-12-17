@@ -66,8 +66,8 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh """
-                    sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
-                    kubectl apply -f deployment.yaml
+                    helm upgrade --install sampleapp ./helm/sampleapp \
+                    --set image.tag=${buildTag}
                 """
             }
         }
