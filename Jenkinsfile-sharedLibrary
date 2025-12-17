@@ -47,6 +47,14 @@ pipeline {
             }
         }
 
+        stage('Login to Azure and AKS') {
+            steps {
+                script {
+                    loginAzureAKS()
+                }
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             when {
                 expression { params.DEPLOY }
