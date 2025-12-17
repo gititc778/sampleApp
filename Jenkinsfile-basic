@@ -33,11 +33,11 @@ pipeline {
         stage('Push to Docker Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockeritc778', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
+                    sh """
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
                         docker tag sampleapp:${buildTag} ${DOCKER_USER}/sampleapp:${buildTag}
                         docker push ${DOCKER_USER}/sampleapp:${buildTag}
-                    '''
+                    """
                 }
             }
         }
@@ -65,10 +65,10 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
+                sh """
                     sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
                     kubectl apply -f deployment.yaml
-                '''
+                """
             }
         }
     }
