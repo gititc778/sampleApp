@@ -34,7 +34,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    buildDocker("v1.10")
+                    buildDocker("buildTag")
                 }
             }
         }
@@ -42,7 +42,7 @@ pipeline {
         stage('Push to Docker Registry') {
             steps {
                 script {
-                    pushDocker("v1.10")
+                    pushDocker("buildTag")
                 }
             }
         }
@@ -61,7 +61,7 @@ pipeline {
             }
             steps {
                 script {
-                    deployK8s("v1.10")
+                    deployK8s("buildTag")
                 }
             }
         }
