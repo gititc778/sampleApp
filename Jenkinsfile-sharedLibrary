@@ -61,6 +61,8 @@ pipeline {
             }
             steps {
                 script {
+
+                    input message: "Do you want to deploy to Kubernetes?", ok: "Deploy"
                     deployAKS("$buildTag")
                 }
             }
