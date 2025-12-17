@@ -61,7 +61,7 @@ pipeline {
             }
             steps {
                 script {
-                    deployK8s("$buildTag")
+                    deployAKS("$buildTag")
                 }
             }
         }
