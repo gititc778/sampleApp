@@ -63,6 +63,7 @@ pipeline {
                 script {
 
                     input message: "Do you want to deploy to Kubernetes?", ok: "Deploy"
+                    echo "Deploying to environment: ${env.ENV}"
                     deployAKS("$buildTag")
                 }
             }
