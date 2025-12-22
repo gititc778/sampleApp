@@ -30,15 +30,18 @@ pipeline {
         }
 
         stage('Checkout Code') {
-            steps {
-                script {
-                    def branchToBuild = params.BRANCH
-                    git branch: branchToBuild,
-                        url: 'https://github.com/pranathi0906/sampleApp.git',
-                        credentialsId: 'a6bd5f7f-0e56-4954-b433-e8751e51e0a8'
-                }
-            }
+    steps {
+        script {
+            // Use your actual branch name here
+            def branchToBuild = params.BRANCH ?: 'master'
+            
+            git branch: branchToBuild,
+                url: 'https://github.com/pranathi0906/sampleApp.git',
+                credentialsId: 'a6bd5f7f-0e56-4954-b433-e8751e51e0a8'
         }
+    }
+}
+
 
         stage('SonarQube Analysis') {
             steps {
