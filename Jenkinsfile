@@ -1,57 +1,84 @@
+@Library('mySharedLibrary') _
+
+def buildTag = ''
+
 pipeline {
-    agent any
+    agent { label 'build-agent' }
+
+    parameters {
+        string(name: 'APP_VERSION', defaultValue: '1.0.0', description: 'Application version')
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Deployment environment')
+        booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to Kubernetes')
+    }
+
+    environment {
+        HELM_RELEASE = 'myapp'                 // Helm release name
+        K8S_NAMESPACE = "${params.ENVIRONMENT}" // Kubernetes namespace
+    }
 
     stages {
+
+        stage('Generate Build Tag') {
+            steps {
+                script {
+                    // Option 1: Use APP_VERSION directly
+                    buildTag = "${params.APP_VERSION}"
+
+                    // Option 2: Combine with timestamp for unique tag
+                    // buildTag = "${params.APP_VERSION}-${generateTag()}"
+                    
+                    echo "Generated Build Tag: ${buildTag}"
+                }
+            }
+        }
+
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+                git branch: 'master', url: 'https://github.com/gititc778/sampleApp.git'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    sonarScan() // Shared library function
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t sampleapp:v10.5 .'
-            }
-        }
-
-        stage('Push to Docker Registry') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockeritc778', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.5
-                        docker push ${DOCKER_USER}/sampleapp:v10.5
-                    '''
+                script {
+                    buildDocker(buildTag) // Shared library function
                 }
             }
         }
 
-        stage('Login to Azure and AKS') {
+        stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'aks-login', usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
-                    sh """
-                        az logout || true
-                        az login --service-principal \
-                                 -u "$AZURE_CLIENT_ID" \
-                                 -p "$AZURE_CLIENT_SECRET" \
-                                 --tenant 2b32b1fa-7899-482e-a6de-be99c0ff5516
-
-                        az aks get-credentials \
-                            --resource-group rg-dev-flux \
-                            --name aks-dev-flux-cluster \
-                            --overwrite-existing
-
-                        kubectl get pods -n default
-                    """
+                script {
+                    pushDocker(buildTag) // Shared library function
                 }
             }
         }
 
-        stage('Deploy to AKS') {
+        stage('Deploy to Kubernetes') {
+            when { expression { params.DEPLOY } }
             steps {
-                sh "kubectl apply -f deployment.yaml -n devops"
+                script {
+                    input message: "Do you want to deploy to Kubernetes?", ok: "Deploy"
+                    echo "Deploying Helm release: ${HELM_RELEASE} to namespace: ${K8S_NAMESPACE}"
+                    helmDeploy(K8S_NAMESPACE, buildTag) // Shared library function
+                }
             }
         }
-
     }
 }
