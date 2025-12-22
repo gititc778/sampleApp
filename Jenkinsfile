@@ -8,12 +8,13 @@ pipeline {
     parameters {
         string(name: 'APP_VERSION', defaultValue: '1.0.0', description: 'Application version')
         choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Deployment environment')
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Git branch to build')
         booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to Kubernetes')
     }
 
     environment {
-        HELM_RELEASE = 'myapp'                 // Helm release name
-        K8S_NAMESPACE = "${params.ENVIRONMENT}" // Kubernetes namespace
+        HELM_RELEASE = 'myapp'                 
+        K8S_NAMESPACE = "${params.ENVIRONMENT}" 
     }
 
     stages {
@@ -21,12 +22,8 @@ pipeline {
         stage('Generate Build Tag') {
             steps {
                 script {
-                    // Option 1: Use APP_VERSION directly
-                    buildTag = "${params.APP_VERSION}"
-
-                    // Option 2: Combine with timestamp for unique tag
-                    // buildTag = "${params.APP_VERSION}-${generateTag()}"
-                    
+                    // Use APP_VERSION directly or combine with timestamp
+                    buildTag = "${params.APP_VERSION}-${generateTag()}"
                     echo "Generated Build Tag: ${buildTag}"
                 }
             }
@@ -35,7 +32,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 script {
-                    def branchToBuild = params.BRANCH ?: 'master'
+                    def branchToBuild = params.BRANCH
                     git branch: branchToBuild,
                         url: 'https://github.com/pranathi0906/sampleApp.git',
                         credentialsId: 'a6bd5f7f-0e56-4954-b433-e8751e51e0a8'
@@ -46,7 +43,8 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    sonarScan() // Shared library function
+                    // Ensure this function exists in your shared library
+                    sonarScan() 
                 }
             }
         }
@@ -79,11 +77,20 @@ pipeline {
             when { expression { params.DEPLOY } }
             steps {
                 script {
-                    input message: "Do you want to deploy to Kubernetes?", ok: "Deploy"
                     echo "Deploying Helm release: ${HELM_RELEASE} to namespace: ${K8S_NAMESPACE}"
                     helmDeploy(K8S_NAMESPACE, buildTag) // Shared library function
                 }
             }
         }
     }
+
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check logs for details."
+        }
+    }
 }
+
