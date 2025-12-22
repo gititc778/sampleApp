@@ -1,57 +1,96 @@
+@Library('mySharedLibrary') _
+
+def buildTag = ''
+
 pipeline {
-    agent any
+    agent { label 'build-agent' }
+
+    parameters {
+        string(name: 'APP_VERSION', defaultValue: '1.0.0', description: 'Application version')
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Deployment environment')
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Git branch to build')
+        booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to Kubernetes')
+    }
+
+    environment {
+        HELM_RELEASE = 'myapp'                 
+        K8S_NAMESPACE = "${params.ENVIRONMENT}" 
+    }
 
     stages {
+
+        stage('Generate Build Tag') {
+            steps {
+                script {
+                    // Use APP_VERSION directly or combine with timestamp
+                    buildTag = "${params.APP_VERSION}-${generateTag()}"
+                    echo "Generated Build Tag: ${buildTag}"
+                }
+            }
+        }
+
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+                script {
+                    def branchToBuild = params.BRANCH
+                    git branch: branchToBuild,
+                        url: 'https://github.com/pranathi0906/sampleApp.git',
+                        credentialsId: 'a6bd5f7f-0e56-4954-b433-e8751e51e0a8'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Ensure this function exists in your shared library
+                    sonarScan() 
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t sampleapp:v10.5 .'
-            }
-        }
-
-        stage('Push to Docker Registry') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockeritc778', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.5
-                        docker push ${DOCKER_USER}/sampleapp:v10.5
-                    '''
+                script {
+                    buildDocker(buildTag) // Shared library function
                 }
             }
         }
 
-        stage('Login to Azure and AKS') {
+        stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'aks-login', usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
-                    sh """
-                        az logout || true
-                        az login --service-principal \
-                                 -u "$AZURE_CLIENT_ID" \
-                                 -p "$AZURE_CLIENT_SECRET" \
-                                 --tenant 2b32b1fa-7899-482e-a6de-be99c0ff5516
-
-                        az aks get-credentials \
-                            --resource-group rg-dev-flux \
-                            --name aks-dev-flux-cluster \
-                            --overwrite-existing
-
-                        kubectl get pods -n default
-                    """
+                script {
+                    pushDocker(buildTag) // Shared library function
                 }
             }
         }
 
-        stage('Deploy to AKS') {
+        stage('Deploy to Kubernetes') {
+            when { expression { params.DEPLOY } }
             steps {
-                sh "kubectl apply -f deployment.yaml -n devops"
+                script {
+                    echo "Deploying Helm release: ${HELM_RELEASE} to namespace: ${K8S_NAMESPACE}"
+                    helmDeploy(K8S_NAMESPACE, buildTag) // Shared library function
+                }
             }
         }
+    }
 
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check logs for details."
+        }
     }
 }
+
