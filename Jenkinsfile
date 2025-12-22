@@ -28,37 +28,10 @@ pipeline {
         }
 
         stage('Checkout Code') {
-<<<<<<< HEAD
-    steps {
-        git branch: 'master',
-            url: 'https://github.com/pranathi0906/sampleApp.git',
-            credentialsId: 'a6bd5f7f-0e56-4954-b433-e8751e51e0a8'
-    }
-}
-
-=======
             steps {
                 git branch: 'master',
                     url: 'https://github.com/pranathi0906/sampleApp.git',
                     credentialsId: 'a6bd5f7f-0e56-4954-b433-e8751e51e0a8'
-            }
-        }
->>>>>>> Added Jenkinsfile
-
-
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    sonarScan()
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
             }
         }
 
@@ -83,7 +56,7 @@ pipeline {
             steps {
                 script {
                     input message: "Deploy to Kubernetes?", ok: "Deploy"
-                    helmDeploy(K8S_NAMESPACE, buildTag)
+                    deployK8s(K8S_NAMESPACE, buildTag)
                 }
             }
         }
