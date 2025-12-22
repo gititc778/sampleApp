@@ -36,7 +36,9 @@ pipeline {
             steps {
                 script {
                     def branchToBuild = params.BRANCH ?: 'master'
-                git branch: 'master', url: 'https://github.com/gititc778/sampleApp.git'
+                    git branch: branchToBuild,
+                        url: 'https://github.com/pranathi0906/sampleApp.git',
+                }
             }
         }
 
