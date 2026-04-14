@@ -16,7 +16,7 @@ pipeline {
 
         stage('Push to Docker Registry') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockeritc778', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
                         docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.5
@@ -38,7 +38,7 @@ pipeline {
 
                         az aks get-credentials \
                             --resource-group rg-dev-flux \
-                            --name aks-dev-flux-cluster \
+                            --name aks-ne-itc-01 \
                             --overwrite-existing
 
                         kubectl get pods -n default
