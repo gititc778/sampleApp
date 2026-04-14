@@ -40,6 +40,8 @@ pipeline {
                             --resource-group rg-dev-flux \
                             --name aks-ne-itc-01 \
                             --overwrite-existing
+                        
+                        kubelogin convert-kubeconfig -l azurecli
 
                         kubectl get pods -n default
                     """
