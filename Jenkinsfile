@@ -1,27 +1,55 @@
+def buildTag = ''
+
 pipeline {
-    agent any
+    agent { label 'build-agent' }
 
     stages {
+        stage('Generate Tag') {
+            steps {
+                script {
+                    def date = new Date().format('yyyyMMdd')    //local variable
+                    buildTag = "${date}.${env.BUILD_NUMBER}"   //global variable. env=env variables in jenkins
+                    currentBuild.displayName = buildTag        //The name you see in Jenkins UI will be modified with buildtag
+
+                   
+                    sh "echo BUILD_TAG=${buildTag} > build.env"
+                }
+            }
+        }
+
+        stage('Use Tag') {
+            steps {
+                script {
+                    echo "The build tag is: ${buildTag}"
+                }
+            }
+        }
+
         stage('Checkout Code') {
             steps {
+                cleanWs()
                 git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t sampleapp:v10.5 .'
+                script {
+                    sh "docker build -t sampleapp:${buildTag} ."
+                }
             }
         }
 
         stage('Push to Docker Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.5
-                        docker push ${DOCKER_USER}/sampleapp:v10.5
-                    '''
+                    script {
+                        sh """
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                            docker tag sampleapp:${buildTag} ${DOCKER_USER}/sampleapp:${buildTag}
+                            docker push ${DOCKER_USER}/sampleapp:${buildTag}
+                        """
+                    }
                 }
             }
         }
@@ -40,7 +68,7 @@ pipeline {
                             --resource-group rg-dev-flux \
                             --name aks-ne-itc-01 \
                             --overwrite-existing
-                        
+
                         kubelogin convert-kubeconfig -l azurecli
 
                         kubectl get pods -n default
@@ -49,11 +77,18 @@ pipeline {
             }
         }
 
-        stage('Deploy to AKS') {
+        stage('Manual Approval') {
             steps {
-                sh "kubectl apply -f deployment.yaml -n default"
+                input message: 'Approve deployment to AKS?'
             }
         }
 
+        stage('Deploy to AKS') {
+            steps {
+                sh """
+                     helm upgrade --install sampleapp ./helm --set image.tag=${buildTag}
+                """
+            }
+        }
     }
 }
