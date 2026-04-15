@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'build-agent' }
 
     stages {
         stage('Checkout Code') {
@@ -10,7 +10,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t sampleapp:v10.5 .'
+                sh 'docker build -t sampleapp:${BUILD_NUMBER} .'
             }
         }
 
@@ -19,8 +19,8 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.5
-                        docker push ${DOCKER_USER}/sampleapp:v10.5
+                        docker tag sampleapp:${BUILD_NUMBER} ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
+                        docker push ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
                     '''
                 }
             }
@@ -40,7 +40,7 @@ pipeline {
                             --resource-group rg-dev-flux \
                             --name aks-ne-itc-01 \
                             --overwrite-existing
-                        
+
                         kubelogin convert-kubeconfig -l azurecli
 
                         kubectl get pods -n default
@@ -51,9 +51,10 @@ pipeline {
 
         stage('Deploy to AKS') {
             steps {
-                sh "kubectl apply -f deployment.yaml -n default"
+                sh """
+                    sed 's/IMAGE_TAG/${BUILD_NUMBER}/g' deployment.yaml | kubectl apply -f -
+                """
             }
         }
-
     }
 }
