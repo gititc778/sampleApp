@@ -17,7 +17,13 @@ pipeline {
 
     parameters {
         string(name: 'BRANCH', defaultValue: 'master', description: 'Git branch to checkout')
-        string(name: 'NAMESPACE', defaultValue: 'dev', description: 'K8s Namespace')
+
+        choice(
+            name: 'NAMESPACE',
+            choices: ['dev', 'qa'],
+            description: 'K8s Namespace'
+        )
+
         booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to AKS?')
     }
 
@@ -106,7 +112,7 @@ pipeline {
             }
             steps {
                 sh """
-                     helm upgrade --install sampleapp ./helm \
+                     helm upgrade --install sampleapp ./helm/sampleapp \
                      --namespace ${params.NAMESPACE} \
                      --create-namespace \
                      --set image.tag=${buildTag}
