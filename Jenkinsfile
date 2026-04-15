@@ -76,6 +76,13 @@ pipeline {
             }
         }
 
+        stage('Manual Approval') {
+            steps {
+                input message: 'Approve deployment to AKS?'
+            }
+        }
+
+
         stage('Deploy to AKS') {
             steps {
                 sh """
