@@ -1,20 +1,7 @@
-@Library('my-shared-lib') _
-
-def buildTag = ''
-
 pipeline {
     agent any
 
     stages {
-
-        stage('Generate Tag') {
-            steps {
-                script {
-                    buildTag = generateTag()
-                }
-            }
-        }
-
         stage('Checkout Code') {
             steps {
                 git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
@@ -23,26 +10,50 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    buildDocker(buildTag)
+                sh 'docker build -t sampleapp:v10.5 .'
+            }
+        }
+
+        stage('Push to Docker Registry') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                        docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.5
+                        docker push ${DOCKER_USER}/sampleapp:v10.5
+                    '''
                 }
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Login to Azure and AKS') {
             steps {
-                script {
-                    pushDocker(buildTag)
+                withCredentials([usernamePassword(credentialsId: 'aks-login', usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
+                    sh """
+                        az logout || true
+                        az login --service-principal \
+                                 -u "$AZURE_CLIENT_ID" \
+                                 -p "$AZURE_CLIENT_SECRET" \
+                                 --tenant 2b32b1fa-7899-482e-a6de-be99c0ff5516
+
+                        az aks get-credentials \
+                            --resource-group rg-dev-flux \
+                            --name aks-ne-itc-01 \
+                            --overwrite-existing
+                        
+                        kubelogin convert-kubeconfig -l azurecli
+
+                        kubectl get pods -n default
+                    """
                 }
             }
         }
 
         stage('Deploy to AKS') {
             steps {
-                script {
-                    deployAKS(buildTag)
-                }
+                sh "kubectl apply -f deployment.yaml -n default"
             }
         }
+
     }
 }
