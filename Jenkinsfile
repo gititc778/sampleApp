@@ -1,17 +1,34 @@
+// String Parameter - Used to pass a single-line text value (e.g., version, environment)
+// Text Parameter - Used for multi-line input (e.g., configs, scripts)
+// Boolean Parameter - True/False checkbox to enable or disable options
+// Choice Parameter - Dropdown with predefined options (e.g., dev, staging, prod)
+// Password Parameter - Used for sensitive values, input is masked
+// File Parameter - Allows uploading a file during the build
+// Run Parameter - Select a build from another job for dependency
+// Credentials Parameter - Select stored Jenkins credentials (e.g., AWS keys)
+// Active Choice Parameter - Dynamic values generated via script (plugin required)
+// Extended Choice Parameter - Advanced selection like multi-select or checkboxes (plugin required)
+
+
 def buildTag = ''
 
 pipeline {
     agent { label 'build-agent' }
 
+    parameters {
+        string(name: 'BRANCH', defaultValue: 'master', description: 'Git branch to checkout')
+        string(name: 'NAMESPACE', defaultValue: 'dev', description: 'K8s Namespace')
+        booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to AKS?')
+    }
+
     stages {
         stage('Generate Tag') {
             steps {
                 script {
-                    def date = new Date().format('yyyyMMdd')    //local variable
-                    buildTag = "${date}.${env.BUILD_NUMBER}"   //global variable. env=env variables in jenkins
-                    currentBuild.displayName = buildTag        //The name you see in Jenkins UI will be modified with buildtag
+                    def date = new Date().format('yyyyMMdd')
+                    buildTag = "${date}.${env.BUILD_NUMBER}"
+                    currentBuild.displayName = buildTag
 
-                   
                     sh "echo BUILD_TAG=${buildTag} > build.env"
                 }
             }
@@ -28,7 +45,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 cleanWs()
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: "${params.BRANCH}"
             }
         }
 
@@ -84,9 +101,15 @@ pipeline {
         }
 
         stage('Deploy to AKS') {
+            when {
+                expression { params.DEPLOY }
+            }
             steps {
                 sh """
-                     helm upgrade --install sampleapp ./helm --set image.tag=${buildTag}
+                     helm upgrade --install sampleapp ./helm \
+                     --namespace ${params.NAMESPACE} \
+                     --create-namespace \
+                     --set image.tag=${buildTag}
                 """
             }
         }
