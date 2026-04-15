@@ -3,15 +3,26 @@ def buildTag = ''
 pipeline {
     agent { label 'build-agent' }
 
+    parameters {
+        string(name: 'BRANCH', defaultValue: 'master', description: 'Git branch to checkout')
+
+        choice(
+            name: 'NAMESPACE',
+            choices: ['dev', 'qa'],
+            description: 'K8s Namespace'
+        )
+
+        booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to AKS?')
+    }
+
     stages {
         stage('Generate Tag') {
             steps {
                 script {
-                    def date = new Date().format('yyyyMMdd')    //local variable
-                    buildTag = "${date}.${env.BUILD_NUMBER}"   //global variable. env=env variables in jenkins
-                    currentBuild.displayName = buildTag        //The name you see in Jenkins UI will be modified with buildtag
+                    def date = new Date().format('yyyyMMdd')
+                    buildTag = "${date}.${env.BUILD_NUMBER}"
+                    currentBuild.displayName = buildTag
 
-                   
                     sh "echo BUILD_TAG=${buildTag} > build.env"
                 }
             }
@@ -27,7 +38,8 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+                cleanWs()
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: "${params.BRANCH}"
             }
         }
 
@@ -82,11 +94,16 @@ pipeline {
             }
         }
 
-
         stage('Deploy to AKS') {
+            when {
+                expression { params.DEPLOY }
+            }
             steps {
                 sh """
-                     helm upgrade --install sampleapp ./helm/sampleapp --set image.tag=${buildTag}
+                     helm upgrade --install sampleapp ./helm/sampleapp \
+                     --namespace ${params.NAMESPACE} \
+                     --create-namespace \
+                     --set image.tag=${buildTag}
                 """
             }
         }
