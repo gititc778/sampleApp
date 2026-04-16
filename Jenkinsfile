@@ -3,16 +3,9 @@ def buildTag = ''
 pipeline {
     agent { label 'build-agent' }
 
-    parameters {
-        string(name: 'BRANCH', defaultValue: 'master', description: 'Git branch to checkout')
-
-        choice(
-            name: 'NAMESPACE',
-            choices: ['dev', 'qa'],
-            description: 'K8s Namespace'
-        )
-
-        booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to AKS?')
+    environment {
+        SONAR_HOST_URL = 'http://your-sonarqube-server:9000'
+        SONAR_TOKEN = credentials('sonar-token-id')
     }
 
     stages {
@@ -22,7 +15,6 @@ pipeline {
                     def date = new Date().format('yyyyMMdd')
                     buildTag = "${date}.${env.BUILD_NUMBER}"
                     currentBuild.displayName = buildTag
-
                     sh "echo BUILD_TAG=${buildTag} > build.env"
                 }
             }
@@ -38,8 +30,39 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                cleanWs()
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: "${params.BRANCH}"
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+            }
+        }
+
+        stage('Restore') {
+            steps {
+                sh 'dotnet restore'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'dotnet build --no-restore -c Release'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('MySonarServer') {
+                    sh """
+                        dotnet sonarscanner begin /k:"my-dotnetcore-app" /d:sonar.host.url=$SONAR_HOST_URL /d:sonar.login=$SONAR_TOKEN
+                        dotnet build --no-restore -c Release
+                        dotnet sonarscanner end /d:sonar.login=$SONAR_TOKEN
+                    """
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
@@ -47,6 +70,38 @@ pipeline {
             steps {
                 script {
                     sh "docker build -t sampleapp:${buildTag} ."
+                }
+            }
+        }
+
+        //  Trivy with HTML report
+        stage('Trivy Scan') {
+            steps {
+                echo 'Preparing Trivy template...'
+                sh '''
+                    mkdir -p contrib
+                    curl -s -o contrib/html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
+                '''
+
+                echo 'Running Trivy scan...'
+                sh """
+                    trivy image --scanners vuln \
+                    --format template \
+                    --template "@contrib/html.tpl" \
+                    -o trivy-report.html \
+                    sampleapp:${buildTag}
+                """
+            }
+
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
+
+                    publishHTML([
+                        reportDir: '.',
+                        reportFiles: 'trivy-report.html',
+                        reportName: 'Trivy Security Report'
+                    ])
                 }
             }
         }
@@ -88,24 +143,31 @@ pipeline {
             }
         }
 
-        stage('Manual Approval') {
+        stage('Deploy to AKS') {
             steps {
-                input message: 'Approve deployment to AKS?'
+                sh """
+                     helm upgrade --install sampleapp ./helm/sampleapp --set image.tag=${buildTag}
+                """
             }
         }
 
-        stage('Deploy to AKS') {
-            when {
-                expression { params.DEPLOY }
-            }
+        stage('Publish Artifacts') {
             steps {
-                sh """
-                     helm upgrade --install sampleapp ./helm/sampleapp \
-                     --namespace ${params.NAMESPACE} \
-                     --create-namespace \
-                     --set image.tag=${buildTag}
-                """
+                sh 'dotnet publish -c Release -o publish'
+                archiveArtifacts artifacts: 'publish/**', fingerprint: true
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
