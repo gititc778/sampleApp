@@ -3,10 +3,6 @@ def buildTag = ''
 pipeline {
     agent { label 'build-agent' }
 
-    environment {
-        SONAR_HOST_URL = 'http://your-sonarqube-server:9000'
-        SONAR_TOKEN = credentials('sonar-token-id')
-    }
 
     stages {
         stage('Generate Tag') {
@@ -50,9 +46,9 @@ pipeline {
             steps {
                 withSonarQubeEnv('MySonarServer') {
                     sh """
-                        dotnet sonarscanner begin /k:"my-dotnetcore-app" /d:sonar.host.url=$SONAR_HOST_URL /d:sonar.login=$SONAR_TOKEN
+                        dotnet sonarscanner begin /k:"my-dotnetcore-app" /d:sonar.login=$SONAR_AUTH_TOKEN
                         dotnet build --no-restore -c Release
-                        dotnet sonarscanner end /d:sonar.login=$SONAR_TOKEN
+                        dotnet sonarscanner end /d:sonar.login=$SONAR_AUTH_TOKEN
                     """
                 }
             }
