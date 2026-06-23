@@ -10,7 +10,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t sampleapp:v10.5 .'
+                sh 'docker build -t sampleapp:v10.6 .'
             }
         }
 
@@ -19,8 +19,8 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.5
-                        docker push ${DOCKER_USER}/sampleapp:v10.5
+                        docker tag sampleapp:v10.5 ${DOCKER_USER}/sampleapp:v10.6
+                        docker push ${DOCKER_USER}/sampleapp:v10.6
                     '''
                 }
             }
