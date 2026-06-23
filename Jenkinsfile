@@ -26,15 +26,14 @@ pipeline {
             }
         }
 
-        stage('Change context to Minikube') {
+        stage('Deploy to Minikube') {
             steps {
-                sh "export KUBECONFIG=/home/danish/kubeconfig/config.yaml"
-            }
-        }
+                sh '''
+                    export KUBECONFIG=/home/danish/kubeconfig/config.yaml
 
-        stage('Deploy to minikube') {
-            steps {
-                sh "kubectl apply -f deployment.yaml -n devops"
+                    kubectl get ns
+                    kubectl apply -f deployment.yaml -n devops
+                '''
             }
         }
 
