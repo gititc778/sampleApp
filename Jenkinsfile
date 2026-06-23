@@ -26,6 +26,11 @@ pipeline {
             }
         }
 
+        stage('Change context to Minikube') {
+            steps {
+                sh "export KUBECONFIG=/home/danish/kubeconfig/config.yaml"
+            }
+        }
 
         stage('Deploy to minikube') {
             steps {
