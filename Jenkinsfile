@@ -34,11 +34,11 @@ pipeline {
         stage('Push to Docker Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
+                    sh """
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
                         docker tag sampleapp:${buildTag} ${DOCKER_USER}/sampleapp:${buildTag}
                         docker push ${DOCKER_USER}/sampleapp:${buildTag}
-                    '''
+                    """
                 }
             }
         }
@@ -46,12 +46,12 @@ pipeline {
         stage('Deploy to Dev env') {
             steps {
 
-                sh '''
+                sh """
                     export KUBECONFIG=/home/danish/kubeconfig/config.yaml
 
                     kubectl get ns
                     sed "s/IMAGE_TAG/${buildTag}/g" deployment.yaml | kubectl apply -f - -n dev
-                '''
+                """
             }
         }
 
@@ -65,12 +65,12 @@ pipeline {
                 )
 
 
-                sh '''
+                sh """
                     export KUBECONFIG=/home/danish/kubeconfig/config.yaml
 
                     kubectl get ns
                     sed "s/IMAGE_TAG/${buildTag}/g" deployment.yaml | kubectl apply -f - -n prod
-                '''
+                """
             }
         }
 
