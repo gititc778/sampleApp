@@ -50,30 +50,12 @@ pipeline {
                     export KUBECONFIG=/home/danish/kubeconfig/config.yaml
 
                     kubectl get ns
-                    sed "s/IMAGE_TAG/${buildTag}/g" deployment.yaml | kubectl apply -f - -n dev
+
+                    helm upgrade --install sampleapp ./helm/sampleapp --set image.tag=${buildTag}
+                    
                 """
             }
         }
-
-        stage('Deploy to prod env') {
-            steps {
-
-
-                input(  
-                    message: 'Deploy to Prod Environment?',
-                    ok: 'Deploy'
-                )
-
-
-                sh """
-                    export KUBECONFIG=/home/danish/kubeconfig/config.yaml
-
-                    kubectl get ns
-                    sed "s/IMAGE_TAG/${buildTag}/g" deployment.yaml | kubectl apply -f - -n prod
-                """
-            }
-        }
-
 
     }
 }
