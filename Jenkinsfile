@@ -33,7 +33,7 @@ pipeline {
                     export KUBECONFIG=/home/danish/kubeconfig/config.yaml
 
                     kubectl get ns
-                    sed 's/IMAGE_TAG/${BUILD_NUMBER}/g' deployment.yaml | kubectl apply -f - -n dev
+                    sed "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml | kubectl apply -f - -n dev
                 '''
             }
         }
