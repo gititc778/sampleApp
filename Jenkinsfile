@@ -29,7 +29,7 @@ pipeline {
 
         stage('Push to Docker Registry') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh """
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
                         docker tag sampleapp:${BUILD_NUMBER} ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
@@ -39,19 +39,20 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-            
-            when {
-                expression { return params.DEPLOY }
-            }
-
+        stage('Deploy to Minikube') {
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
-                    sh """
-                        sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml
-                        kubectl apply -f deployment.yaml --namespace=${ENV}
-                    """
-                }
+                input(
+                    message: 'Deploy to Minikube?',
+                    ok: 'Deploy'
+                )
+
+                sh """
+                    export KUBECONFIG=/home/danish/kubeconfig/config.yaml
+
+                    kubectl get ns
+
+                    sed 's/IMAGE_TAG/${BUILD_NUMBER}/g' deployment.yaml | kubectl apply -f - -n devops
+                """
             }
         }
     }
