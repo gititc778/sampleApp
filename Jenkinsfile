@@ -1,61 +1,58 @@
-def buildTag = ''
-
 pipeline {
-    agent any
+    agent { label 'build-agent-01' }
+
+    
+    parameters {
+        string(name: 'BRANCH', defaultValue: 'master')
+        choice(name: 'ENV', choices: ['dev', 'staging', 'prod'])
+        booleanParam(name: 'DEPLOY', defaultValue: true)
+    }
+    
+    environment {
+        ENV = 'prod'  
+    }
+
+
 
     stages {
-
-        stage('Generate Tag') {
-            steps {
-                script {
-                    def date = new Date().format('yyyyMMdd')    //local variable
-                    buildTag = "${date}.${BUILD_NUMBER}"   //global variable. env=env variables in jenkins
-                    currentBuild.displayName = buildTag        //The name you see in Jenkins UI will be modified with buildtag
-
-                   
-                    sh "echo BUILD_TAG=${buildTag} > build.env"
-                }
-            }
-        }
-
-
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: "${params.BRANCH}"
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh " docker build -t sampleapp:${buildTag} . "
+                sh 'docker build -t sampleapp:${BUILD_NUMBER} .'
             }
         }
 
         stage('Push to Docker Registry') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh """
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:${buildTag} ${DOCKER_USER}/sampleapp:${buildTag}
-                        docker push ${DOCKER_USER}/sampleapp:${buildTag}
+                        docker tag sampleapp:${BUILD_NUMBER} ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
+                        docker push ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
                     """
                 }
             }
         }
 
-        stage('Deploy to Dev env') {
+        stage('Deploy to Kubernetes') {
+            
+            when {
+                expression { return params.DEPLOY }
+            }
+
             steps {
-
-                sh """
-                    export KUBECONFIG=/home/danish/kubeconfig/config.yaml
-
-                    kubectl get ns
-
-                    helm upgrade --install sampleapp ./helm/sampleapp --set image.tag=${buildTag}
-                    
-                """
+                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
+                    sh """
+                        sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" deployment.yaml
+                        kubectl apply -f deployment.yaml --namespace=${ENV}
+                    """
+                }
             }
         }
-
     }
 }
