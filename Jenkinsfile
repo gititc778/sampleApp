@@ -1,45 +1,79 @@
+def buildTag = ''
+
 pipeline {
-    agent { label 'build-agent-01' }
-
-    
-    parameters {
-        string(name: 'BRANCH', defaultValue: 'master')
-        choice(name: 'ENV', choices: ['dev', 'staging', 'prod'])
-        booleanParam(name: 'DEPLOY', defaultValue: true)
-    }
-    
-    environment {
-        ENV = 'prod'  
-    }
-
-
+    agent { label 'build-agent' }
 
     stages {
+        stage('Generate Tag') {
+            steps {
+                script {
+                    def date = new Date().format('yyyyMMdd')
+                    buildTag = "${date}.${env.BUILD_NUMBER}"
+                    currentBuild.displayName = buildTag
+                    sh "echo BUILD_TAG=${buildTag} > build.env"
+                }
+            }
+        }
+
+        stage('Use Tag') {
+            steps {
+                script {
+                    echo "The build tag is: ${buildTag}"
+                }
+            }
+        }
+
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: "${params.BRANCH}"
+                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('mysonarqubepat') {
+                    sh '''
+                        dotnet sonarscanner begin /k:"sampleapp"
+
+                        dotnet build -c Release
+
+                        dotnet sonarscanner end
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t sampleapp:${BUILD_NUMBER} .'
+                script {
+                    sh "docker build -t sampleapp:${buildTag} ."
+                }
             }
         }
 
         stage('Push to Docker Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker tag sampleapp:${BUILD_NUMBER} ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
-                        docker push ${DOCKER_USER}/sampleapp:${BUILD_NUMBER}
-                    """
+                    script {
+                        sh """
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                            docker tag sampleapp:${buildTag} ${DOCKER_USER}/sampleapp:${buildTag}
+                            docker push ${DOCKER_USER}/sampleapp:${buildTag}
+                        """
+                    }
                 }
             }
         }
 
-        stage('Deploy to Minikube') {
+     stage('Deploy to Minikube') {
             steps {
                 input(
                     message: 'Deploy to Minikube?',
