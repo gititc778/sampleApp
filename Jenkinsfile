@@ -33,6 +33,8 @@ pipeline {
             steps {
                 withSonarQubeEnv('MySonarServer') {
                     sh '''
+                        export PATH=$PATH:/home/danish/.dotnet/tools
+
                         dotnet sonarscanner begin /k:"sampleapp"
 
                         dotnet build -c Release
