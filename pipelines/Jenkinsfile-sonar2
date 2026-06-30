@@ -1,8 +1,7 @@
 def buildTag = ''
 
 pipeline {
-    agent { label 'build-agent' }
-
+    agent { label 'build-agent-01' }
 
     stages {
         stage('Generate Tag') {
@@ -62,38 +61,6 @@ pipeline {
             }
         }
 
-        //  Trivy with HTML report
-        stage('Trivy Scan') {
-            steps {
-                echo 'Preparing Trivy template...'
-                sh '''
-                    mkdir -p contrib
-                    curl -s -o contrib/html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
-                '''
-
-                echo 'Running Trivy scan...'
-                sh """
-                    trivy image --scanners vuln \
-                    --format template \
-                    --template "@contrib/html.tpl" \
-                    -o trivy-report.html \
-                    sampleapp:${buildTag}
-                """
-            }
-
-            post {
-                always {
-                    archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
-
-                    publishHTML([
-                        reportDir: '.',
-                        reportFiles: 'trivy-report.html',
-                        reportName: 'Trivy Security Report'
-                    ])
-                }
-            }
-        }
-
         stage('Push to Docker Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-login-itc', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -105,6 +72,23 @@ pipeline {
                         """
                     }
                 }
+            }
+        }
+
+     stage('Deploy to Minikube') {
+            steps {
+                input(
+                    message: 'Deploy to Minikube?',
+                    ok: 'Deploy'
+                )
+
+                sh """
+                    export KUBECONFIG=/home/danish/kubeconfig/config.yaml
+
+                    kubectl get ns
+
+                    sed 's/IMAGE_TAG/${BUILD_NUMBER}/g' deployment.yaml | kubectl apply -f - -n devops
+                """
             }
         }
     }
