@@ -31,7 +31,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('mysonarqubepat') {
+                withSonarQubeEnv('MySonarServer') {
                     sh '''
                         dotnet sonarscanner begin /k:"sampleapp"
 
