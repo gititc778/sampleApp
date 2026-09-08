@@ -25,9 +25,10 @@ kind: Service
 metadata:
   name: sampleapp-svc
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: sampleapp
   ports:
-    - port: 80      
+    - port: 80
       targetPort: 5000
+      nodePort: 30080
